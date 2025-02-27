@@ -3,126 +3,112 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
-type Project struct {
-	Id        string `json:"id"`
-	Name      string `json:"name"`
-	Desc      string `json:"desc"`
-	Completed bool   `json:"completed"`
-	Created   string `json:"created"`
-	Updated   string `json:"updated"`
+type Product struct {
+	Id         string   `json:"id"`
+	Name       string   `json:"name"`
+	Price      float64  `json:"price"`
+	Categories []string `json:"categories"`
 }
 
-var projects = []Project{
-	{Id: "1", Name: "Project 1", Desc: "Description 1", Completed: false, Created: "2022-01-01", Updated: "2022-01-01"},
-	{Id: "2", Name: "Project 2", Desc: "Description 2", Completed: true, Created: "2022-02-01", Updated: "2022-02-01"},
-	{Id: "3", Name: "Project 3", Desc: "Description 3", Completed: false, Created: "2022-03-01", Updated: "2022-03-01"},
-	{Id: "4", Name: "Project 4", Desc: "Description 4", Completed: true, Created: "2022-04-01", Updated: "2022-04-01"},
-	{Id: "5", Name: "Project 5", Desc: "Description 5", Completed: false, Created: "2022-05-01", Updated: "2022-05-01"},
+var products = []Product{
+	{Id: "1", Name: "CPU", Price: 1000.0, Categories: []string{"Processors"}},
+	{Id: "2", Name: "Motherboard", Price: 500.0, Categories: []string{"Motherboards"}},
+	{Id: "3", Name: "RAM", Price: 200.0, Categories: []string{"Memory"}},
+	{Id: "4", Name: "HDD", Price: 300.0, Categories: []string{"Storage"}},
+	{Id: "5", Name: "GPU", Price: 1500.0, Categories: []string{"Graphics Cards"}},
 }
 
 func main() {
 	r := gin.Default()
 
-	r.GET("/projects", getAllPrj)
+	r.GET("/products", getAllProducts)
 
-	r.GET("/projects/:id", getPrjById)
+	r.GET("/products/:id", getProductById)
 
-	r.GET("/projects/name/:name", getPrjByName)
+	r.GET("/categories/:category", getProductsByCategory)
 
-	r.POST("/projects/new", createPrj)
+	r.POST("/products/new", createProduct)
 
-	r.PUT("/projects/:id", updateProjectById)
+	r.PUT("/products/:id", updateProductById)
 
-	r.DELETE("/projects/:id", deleteProjectById)
+	r.DELETE("/products/:id", deleteProductById)
 
-	r.Run(":8080")
-}
-
-func getAllPrj(c *gin.Context) {
-	page := c.DefaultQuery("page", "1")
-	pageInt, err := strconv.Atoi(page)
-	if err != nil || pageInt < 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid page number"})
+	err := r.Run(":8080")
+	if err != nil {
 		return
 	}
-
-	limit := 10
-	startIndex := (pageInt - 1) * limit
-	endIndex := startIndex + limit
-
-	if startIndex >= len(projects) {
-		c.JSON(http.StatusOK, []Project{})
-		return
-	}
-
-	if endIndex > len(projects) {
-		endIndex = len(projects)
-	}
-
-	c.JSON(http.StatusOK, projects[startIndex:endIndex])
-
 }
 
-func getPrjById(c *gin.Context) {
+func getAllProducts(c *gin.Context) {
+	c.JSON(http.StatusOK, products)
+}
+
+func getProductById(c *gin.Context) {
 	id := c.Param("id")
-	for _, prj := range projects {
-		if prj.Id == id {
-			c.JSON(http.StatusOK, prj)
+	for _, prd := range products {
+		if prd.Id == id {
+			c.JSON(http.StatusOK, prd)
 			return
 		}
 	}
-	c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 }
 
-func getPrjByName(c *gin.Context) {
-	name := c.Param("name")
-	for _, prj := range projects {
-		if prj.Name == name {
-			c.JSON(http.StatusOK, prj)
-			return
+func getProductsByCategory(c *gin.Context) {
+	category := c.Param("category")
+	var prds []Product
+	for _, prd := range products {
+		for _, cat := range prd.Categories {
+			if cat == category {
+				prds = append(prds, prd)
+				break
+			}
 		}
 	}
-	c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	if len(prds) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No products found in this category"})
+		return
+	}
+	c.JSON(http.StatusOK, prds)
 }
 
-func createPrj(c *gin.Context) {
-	var prj Project
-	if err := c.ShouldBindJSON(&prj); err != nil {
+func createProduct(c *gin.Context) {
+	var prd Product
+	if err := c.ShouldBindJSON(&prd); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	projects = append(projects, prj)
-	c.JSON(http.StatusCreated, prj)
+	products = append(products, prd)
+	c.JSON(http.StatusCreated, prd)
 }
 
-func updateProjectById(c *gin.Context) {
+func updateProductById(c *gin.Context) {
 	id := c.Param("id")
-	for i, prj := range projects {
-		if prj.Id == id {
-			var updatedPrj Project
-			if err := c.ShouldBindJSON(&updatedPrj); err != nil {
+	for i, prd := range products {
+		if prd.Id == id {
+			var updatedPrd Product
+			if err := c.ShouldBindJSON(&updatedPrd); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
-			projects[i] = updatedPrj
-			c.JSON(http.StatusOK, updatedPrj)
+			products[i] = updatedPrd
+			c.JSON(http.StatusOK, updatedPrd)
 			return
 		}
 	}
-	c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 }
 
-func deleteProjectById(c *gin.Context) {
+func deleteProductById(c *gin.Context) {
 	id := c.Param("id")
-	for i, prj := range projects {
-		if prj.Id == id {
-			projects = append(projects[:i], projects[i+1:]...)
-			c.JSON(http.StatusOK, gin.H{"message": "Project deleted successfully"})
+	for i, prd := range products {
+		if prd.Id == id {
+			products = append(products[:i], products[i+1:]...)
+			c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 			return
 		}
 	}
-	c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 }
